@@ -1,0 +1,163 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Eventos sísmicos{% endblock %}
+
+{% block body %}
+    <div class="container mt-5">
+        <h1 class="mb-3">Eventos sísmicos</h1>
+
+        {# Flashes del sistema #}
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="alert alert-{{ label }}">{{ message }}</div>
+            {% endfor %}
+        {% endfor %}
+
+        {# Controles de ordenación por servidor (opcional) #}
+        <form class="row g-2 mb-3" method="get" action="{{ path('app_event_list') }}">
+            <div class="col-auto">
+                <label for="sort" class="form-label">Ordenar por</label>
+                <select id="sort" name="sort" class="form-select">
+                    <option value="">— Orden —</option>
+                    <option value="fecha" {{ app.request.get('sort') == 'fecha' ? 'selected' }}>Fecha</option>
+                    <option value="aceleracion" {{ app.request.get('sort') == 'aceleracion' ? 'selected' }}>Aceleración Máx.</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label for="dir" class="form-label">Dirección</label>
+                <select id="dir" name="dir" class="form-select">
+                    <option value="desc" {{ app.request.get('dir') == 'desc' ? 'selected' }}>Descendente</option>
+                    <option value="asc"  {{ app.request.get('dir') == 'asc'  ? 'selected' }}>Ascendente</option>
+                </select>
+            </div>
+            <div class="col-auto align-self-end">
+                <button type="submit" class="btn btn-outline-primary">Ordenar</button>
+            </div>
+        </form>
+
+        <form id="formDescargar" action="{{ path('app_file_manager_download') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('descargar_evento') }}">
+            <input type="hidden" id="idEventoSeleccionado" name="idEvento">
+
+            <table class="table table-striped table-hover table-condensed " id="eventosTable">
+                <thead>
+                <tr>
+
+                    <th data-sort="fecha">Fecha del evento</th>
+                    <th>Magnitud (Mw)</th>
+                    <th>Profundidad (km)</th>
+                    <th data-sort="aceleracion">Aceleración Máx. cm/s&sup2 (lugar)</th>
+                    <th> Ver archivos</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for e in eventos %}
+                    <tr class="fila-seleccionable"
+                        data-id="{{ e.idEvento }}"
+                        role="button">
+                        {# Use data-sort-value para ordenar correctamente #}
+                        <td data-sort-value="{{ e.fechaEvento ? e.fechaEvento|date('U') : '' }}">
+                            {{ e.fechaEvento ? e.fechaEvento|date('Y-m-d H:i:s') : '—' }}
+                        </td>
+                        <td>
+                            {{ e.magnitudEvento is not null ? e.magnitudEvento|number_format(1, '.', ',') : '—' }}
+                        </td>
+                        <td data-sort-value="{{ e.profundidadEvento is not null ? e.profundidadEvento : '' }}">
+                            {{ e.profundidadEvento is not null ? e.profundidadEvento|number_format(1, '.', ',') : '—' }}
+                        </td>
+                        <td data-sort-value="{{ e.aceleracionEvento is not null ? e.aceleracionEvento : '' }}">
+                            {{ e.aceleracionEvento is not null ? e.aceleracionEvento|number_format(2, '.', ',') : '—'  }} -- ( {{ e.nombre }} )
+                        </td>
+                        <td> <button type="submit" class="btn btn-primary" id="btnDescargar" disabled>
+                                Archivos .Lis
+                            </button>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="text-muted">No hay eventos para mostrar.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary" id="btnDescargar" disabled>
+                    Abrir página de descarga
+                </button>
+                <small class="text-muted align-self-center">Se enviará un POST con <code>idEvento</code> a <em>descargar.html.twig</em>.</small>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block scriptspie %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            let mytabla =$('#eventosTable').DataTable({
+                paging: true,       // Habilita paginación
+                columnDefs: [
+                    { targets: [0], className: 'dt-head-center dt-body-center' }
+                ],
+                retrieve: true,
+                ordering: true,
+                order: [[0, "desc"],],
+                lengthMenu: [15, 30, 60], // Opciones de cantidad de filas por página
+                pageLength: 15,      // Número de filas por defecto
+                language: {
+                    processing: "En curso...",
+                    search: "Buscar:",
+                    paginate: {
+                        first: "Primero",
+                        previous: "Anterior",
+                        next: "Siguiente",
+                        last: "Último"
+                    },
+                },
+            });
+
+
+            const tabla = document.getElementById('eventosTable');
+            const tbody = tabla.querySelector('tbody');
+            const btnDescargar = document.getElementById('btnDescargar');
+            const inputId = document.getElementById('idEventoSeleccionado');
+
+            // Selección de fila por clic (marca el radio y habilita botón):
+            tbody.addEventListener('click', function (ev) {
+                const fila = ev.target.closest('tr.fila-seleccionable');
+                if (!fila) return;
+                const radio = fila.querySelector('.seleccionar-radio');
+                if (radio) {
+                    radio.checked = true;
+                    inputId.value = fila.dataset.id;
+                    btnDescargar.disabled = false;
+                }
+            });
+
+            // Ordenamiento cliente por columnas con data-sort:
+            const getCellValue = (tr, idx) => {
+                const td = tr.children[idx];
+                return td ? (td.dataset.sortValue || td.textContent.trim()) : '';
+            };
+            const comparer = (idx, asc) => (a, b) => {
+                const v1 = getCellValue(asc ? a : b, idx);
+                const v2 = getCellValue(asc ? b : a, idx);
+                const n1 = parseFloat(v1), n2 = parseFloat(v2);
+                if (!isNaN(n1) && !isNaN(n2)) return n1 - n2;
+                return v1.localeCompare(v2);
+            };
+
+            tabla.querySelectorAll('th[data-sort]').forEach(th => {
+                let asc = false;
+                th.style.cursor = 'pointer';
+                th.addEventListener('click', () => {
+                    const idx = Array.from(th.parentNode.children).indexOf(th);
+                    asc = !asc;
+                    Array.from(tbody.querySelectorAll('tr'))
+                        .sort(comparer(idx, asc))
+                        .forEach(tr => tbody.appendChild(tr));
+                });
+            });
+        });
+    </script>
+    {{ parent() }}
+{% endblock %}

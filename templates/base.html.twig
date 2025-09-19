@@ -13,6 +13,9 @@
     {% block stylesheets %}
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/2.3.4/css/dataTables.dataTables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/2.3.4/css/dataTables.jqueryui.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/2.3.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/css/layout.css') }}">
         <link rel="stylesheet"
               href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css">
@@ -364,17 +367,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 
         </section>
-{% block foot %}
-        <!-- CUERPO/CONTENIDO -->
-        <section class="row">
-        
-            <div class="col-lg-1" style="padding-top:5px;"></div>
-            <div class="col-12 col-lg-10" style="margin-top:10px; background-color:#FFF; min-height:600px; padding-bottom:10px; margin-bottom:40px;">
-
-
+    </div>
+</body>
         <!-- FIN CUERPO/CONTENIDO -->
-        
-         <!-- PIE DE PÁGINA -->
+        {% block foot %}
+        <!-- PIE DE PÁGINA -->
         <footer class="row">
                 <div class="row" style="border-top: 1px solid red;">
                     <div class="col-12 col-lg-3" style="padding-top:5px; font-size:11px;">
@@ -413,128 +410,44 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
 
         </footer>
-        <!-- FIN PIE DE PÁGINA -->
-        
-
     </div>
-{% endblock %}
+        <!-- FIN PIE DE PÁGINA -->
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    // Manejador para abrir submenús en pantallas grandes y móviles
+                    document.querySelectorAll('.dropdown-submenu > a').forEach(function(element) {
+                        element.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            let submenu = this.nextElementSibling;
+                            if (submenu) {
+                                submenu.classList.toggle('show');
+                            }
+                        });
+                    });
+
+                    // Evitar que otros submenús abiertos interfieran
+                    document.querySelectorAll('.dropdown').forEach(function(menu) {
+                        menu.addEventListener('hide.bs.dropdown', function(e) {
+                            let submenus = menu.querySelectorAll('.dropdown-menu.show');
+                            submenus.forEach(function(submenu) {
+                                submenu.classList.remove('show');
+                            });
+                        });
+                    });
+                });
+            </script>
+        {% endblock %}
 {% block scriptspie %}
-    <script src="{{ asset('assets/js/contact2web.js') }}"></script>	
+    <script src="{{ asset('assets/js/contact2web.js') }}"></script>
+    <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.7.1.min.js?a=1"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/2.3.4/js/dataTables.min.js?a=2"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/2.3.4/js/dataTables.jqueryui.min.js?a=2"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/2.3.4/js/dataTables.bootstrap5.min.js?a=2"></script>
     <!-- Bootstrap 5.3 (JS) -->
     <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js') }}" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-    <script>
-		// Variable global para almacenar la zona seleccionada del mapa
-		window.gesdiZonaSeleccionada = null;
-
-		document.addEventListener('DOMContentLoaded', function() {
-			// ... (toda la lógica de los botones btnCompleteStep1, btnBackToStep1, etc., va aquí) ...
-			// Y la lógica para el mapa:
-
-			if (document.getElementById('mapaGesdi')) {
-				const centroCR = [9.748917, -83.753428]; // Centro de Costa Rica
-				const zoomCR = 7;
-				const map = L.map('mapaGesdi').setView(centroCR, zoomCR); // Aquí se usa el ID 'mapaGesdi'
-
-				L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-					attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors. Zonas por LIS-UCR.'
-				}).addTo(map);
-
-				let capaGeoJsonActual = null;
-				let capaZonaPreviamenteSeleccionada = null;
-
-				async function cargarZonas(mapInstance) {
-					try {
-						// Asegúrate que la ruta a tu archivo GeoJSON sea correcta desde la raíz de tu sitio web
-						// Si 'public' es tu webroot, y el archivo está en 'public/assets/geojson/zonas_gesdi.geojson',
-						// la ruta para fetch es 'assets/geojson/zonas_gesdi.geojson'
-						const response = await fetch('assets/geojson/zonas_gesdi.geojson');
-						if (!response.ok) {
-							throw new Error(`Error HTTP ${response.status} al cargar zonas_gesdi.geojson`);
-						}
-						const geojsonData = await response.json();
-
-						if (capaGeoJsonActual) {
-							mapInstance.removeLayer(capaGeoJsonActual);
-						}
-						capaZonaPreviamenteSeleccionada = null;
-
-						capaGeoJsonActual = L.geoJSON(geojsonData, {
-							style: function(feature) {
-								return {
-									fillColor: feature.properties.color || '#3388ff',
-									weight: 1.5,
-									opacity: 1,
-									color: 'white',
-									fillOpacity: 0.5
-								};
-							},
-							onEachFeature: function (feature, layer) {
-								layer.bindTooltip(feature.properties.nombre_zona || "Zona sin nombre");
-								layer.on('click', function (e) {
-									if (capaZonaPreviamenteSeleccionada) {
-										capaGeoJsonActual.resetStyle(capaZonaPreviamenteSeleccionada);
-									}
-
-									const capaActualClickeada = e.target;
-									capaActualClickeada.setStyle({
-										weight: 3,
-										color: '#CE2929',
-										fillColor: '#F07272',
-										fillOpacity: 0.75
-									});
-									if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-										capaActualClickeada.bringToFront();
-									}
-									capaZonaPreviamenteSeleccionada = capaActualClickeada;
-
-									window.gesdiZonaSeleccionada = feature.properties.id_zona; // Actualiza la variable global
-									console.log('Mapa: Zona seleccionada -> ID:', window.gesdiZonaSeleccionada);
-								});
-							}
-						}).addTo(mapInstance);
-					} catch (error) {
-						console.error("Error al cargar/procesar zonas GeoJSON:", error);
-						document.getElementById('mapaGesdi').innerHTML = '<p class="text-danger p-3"><strong>Error:</strong> No se pudieron cargar las zonas del mapa. Verifique que el archivo <code>assets/geojson/zonas_gesdi.geojson</code> exista y sea accesible. Detalles en la consola.</p>';
-					}
-				}
-				cargarZonas(map); // Llamar a la función para cargar las zonas
-			} else {
-				console.warn("Elemento con ID 'mapaGesdi' no encontrado en el DOM. El mapa no se inicializará.");
-			}
-
-			// ... (resto de tu JavaScript para los botones y la lógica de los pasos) ...
-		});
-		</script>
-
-			<script>
-			document.addEventListener('DOMContentLoaded', function () {
-				// Manejador para abrir submenús en pantallas grandes y móviles
-				document.querySelectorAll('.dropdown-submenu > a').forEach(function(element) {
-					element.addEventListener('click', function(e) {
-						e.preventDefault();
-						e.stopPropagation();
-						let submenu = this.nextElementSibling;
-						if (submenu) {
-							submenu.classList.toggle('show');
-						}
-					});
-				});
-
-				// Evitar que otros submenús abiertos interfieran
-				document.querySelectorAll('.dropdown').forEach(function(menu) {
-					menu.addEventListener('hide.bs.dropdown', function(e) {
-						let submenus = menu.querySelectorAll('.dropdown-menu.show');
-						submenus.forEach(function(submenu) {
-							submenu.classList.remove('show');
-						});
-					});
-				});
-			});
-    </script>
 
 
-</body>
-</html>
+
 {% endblock %}
+</html>

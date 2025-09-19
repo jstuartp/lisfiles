@@ -2,6 +2,9 @@
 
 namespace App\Controller;
 
+use App\Repository\EventosRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,15 +15,41 @@ use ZipArchive;
 
 class FileManagerController extends AbstractController
 {
+    private EventosRepository $eventosRepository;
+
     private string $baseDirectory;
 
-    public function __construct(string $filesDirectory)
+    public function __construct(string $filesDirectory, EventosRepository $eventosRepository)
     {
         // Resuelve la ruta real para mayor seguridad
         $this->baseDirectory = realpath($filesDirectory);
+
+        //Inyectando el repositorio
+        $this->eventosRepository = $eventosRepository;
     }
 
-    #[Route('/{path}', name: 'app_file_manager_list', requirements: ['path' => '.+'], defaults: ['path' => ''])]
+
+    #[Route('/', name:'app_event_list', methods: ['POST','GET'])]
+    public function index(Request $request, EntityManagerInterface $em, ManagerRegistry $doctrine): Response
+    {
+        //nombre de la pagina
+        $nombre="";
+        $salida="";
+
+       //Conectando con el repositorio eventos
+        $eventos = $this->eventosRepository->findAllEventos();
+
+
+        //Devuelvo todo el entity, lo que me permite usarlo en el twigg
+        return $this->render('index.html.twig',
+            ['title'=> $nombre, 'eventos'=>$eventos, 'salida'=>$salida] );
+    }
+
+
+
+
+
+    #[Route('/load', name: 'app_file_manager_list', requirements: ['path' => '.+'], defaults: ['path' => ''])]
     public function listFiles(string $path): Response
     {
         // Construye y valida la ruta actual para evitar ataques de directory traversal
