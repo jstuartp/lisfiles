@@ -49,13 +49,26 @@ class FileManagerController extends AbstractController
 
 
 
-    #[Route('/load', name: 'app_file_manager_list', requirements: ['path' => '.+'], defaults: ['path' => ''])]
-    public function listFiles(string $path): Response
+    #[Route('/files/', name: 'app_file_manager_list', methods: ['POST','GET'])]
+    public function listFiles(Request $request): Response
     {
+        if ($request->isMethod('POST')) {
+            $path = $request->request->get('id');
+            $fecha = $request->request->get('fecha');
+            $magnitud = $request->request->get('mag');
+        }
+
         // Construye y valida la ruta actual para evitar ataques de directory traversal
         $currentPath = realpath($this->baseDirectory . '/' . $path);
         if ($currentPath === false || strpos($currentPath, $this->baseDirectory) !== 0) {
-            throw $this->createNotFoundException('Directorio no válido.');
+            return $this->render('files.html.twig', [
+                'directories' => "",
+                'files' => "",
+                'current_path' =>"",
+                'fecha' => "$fecha",
+                'mag' => "$magnitud",
+                'parent_path' => "", 'messages' => "El directorio no tiene archivos",
+            ]);
         }
 
         // Obtener directorios
@@ -78,10 +91,12 @@ class FileManagerController extends AbstractController
         // Generar la ruta relativa para la navegación
         $relativePath = trim(substr($currentPath, strlen($this->baseDirectory)), DIRECTORY_SEPARATOR);
 
-        return $this->render('file_manager/index.html.twig', [
+        return $this->render('files.html.twig', [
             'directories' => $finderDirs,
             'files' => $files,
             'current_path' => $relativePath,
+            'fecha' => $fecha,
+            'mag' => $magnitud,
             'parent_path' => $relativePath ? dirname($relativePath) : null,
         ]);
     }

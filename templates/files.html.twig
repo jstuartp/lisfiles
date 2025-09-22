@@ -1,0 +1,148 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Archivos LIS{% endblock %}
+
+{% block body %}
+    <div class="container mt-5">
+        <h1>Archivos LIS</h1>
+        <p class="text-muted">Sismo del {{ fecha|date("d-m-Y H:i:s ") }}(UTC) <span class="badge bg-danger">M {{ mag |round(1)}} </span></p>
+
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="alert alert-{{ label }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+
+        <form action="{{ path('app_file_manager_download') }}" method="post">
+            {# Campo oculto para enviar la ruta actual al descargar #}
+            <input type="hidden" name="current_path" value="{{ current_path }}">
+
+            <table class="table table-striped table-hover" id="filesTable">
+                <thead>
+                <tr>
+                    <th> <input type="checkbox" name="all" id="selectAll"> </th>
+                    <th data-sort="name">Nombre</th>
+                    <th data-sort="size">Tamaño</th>
+                    <th data-sort="modified">Última Modificación</th>
+                </tr>
+                </thead>
+                <tbody>
+                {# Enlace para subir de nivel si no estamos en la raíz #}
+                {# Listar archivos #}
+                {% if files is empty %}
+                    <div class="alert alert-warning">
+                        {{ messages }}
+                    </div>
+                {% endif %}
+                {% for file in files %}
+                    <tr>
+                        <td><input type="checkbox" name="files[]" value="{{ file.name }}"></td>
+                        <td>📄 {{ file.name }}</td>
+                        <td data-sort-value="{{ file.size }}">{{ file.size|number_format(0, '.', ',') }} bytes</td>
+                        <td data-sort-value="{{ file.modified }}">{{ file.modified|date('d/m/Y H:i:s') }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="btn btn-primary">Descargar Seleccionados</button>
+        </form>
+    </div>
+{% endblock %}
+
+{% block scriptspie %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const selectAll = document.getElementById('selectAll');
+            const table = document.getElementById('filesTable');
+            const selector = 'input[name="files[]"]';
+            let lastCheckedIndex = null;
+
+            // Utilidad: obtiene todos los checkboxes de archivos actualmente visibles en el DOM
+            function getFileCheckboxes() {
+                return Array.from(table.querySelectorAll(selector));
+            }
+
+            // Aplica check/uncheck masivo según el estado del maestro
+            function setAll(checked) {
+                getFileCheckboxes().forEach(cb => { if (!cb.disabled) cb.checked = checked; });
+                updateMaster();
+            }
+
+            // Actualiza el estado del maestro (checked / unchecked / indeterminate)
+            function updateMaster() {
+                const cbs = getFileCheckboxes().filter(cb => !cb.disabled);
+                if (cbs.length === 0) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                    selectAll.disabled = true;
+                    return;
+                }
+                selectAll.disabled = false;
+                const total = cbs.length;
+                const marcados = cbs.filter(cb => cb.checked).length;
+                if (marcados === 0) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                } else if (marcados === total) {
+                    selectAll.checked = true;
+                    selectAll.indeterminate = false;
+                } else {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = true;
+                }
+            }
+
+            // Click en el maestro: seleccionar / deseleccionar todos
+            selectAll.addEventListener('click', (ev) => {
+                setAll(ev.target.checked);
+            });
+
+            // Delegación de eventos: clicks en checkboxes individuales
+            table.addEventListener('click', (ev) => {
+                const target = ev.target;
+                if (target && target.matches(selector)) {
+                    const cbs = getFileCheckboxes();
+                    const currentIndex = cbs.indexOf(target);
+
+                    // Soporte Shift+click para seleccionar/deseleccionar rangos
+                    if (ev.shiftKey && lastCheckedIndex !== null && currentIndex !== -1) {
+                        const [start, end] = currentIndex > lastCheckedIndex
+                            ? [lastCheckedIndex, currentIndex]
+                            : [currentIndex, lastCheckedIndex];
+
+                        // El rango toma el estado del checkbox actualmente cliqueado
+                        const desired = target.checked;
+                        for (let i = start; i <= end; i++) {
+                            if (!cbs[i].disabled) cbs[i].checked = desired;
+                        }
+                    }
+
+                    lastCheckedIndex = currentIndex;
+                    updateMaster();
+                }
+            });
+
+            // Opcional: permitir que el clic en la primera celda de la fila alterne el checkbox (mejora de UX)
+            table.addEventListener('click', (ev) => {
+                const cell = ev.target.closest('td');
+                if (!cell) return;
+                const row = cell.parentElement;
+                const cb = row && row.querySelector(selector);
+                // Evita togglear si el click fue directamente sobre un control interactivo distinto al checkbox
+                if (cb && !ev.target.matches('input,button,a,select,label,svg,path')) {
+                    // No cambiar si el usuario ya hizo click directo en el checkbox (cubierto por listener anterior)
+                    if (!ev.target.matches(selector)) {
+                        cb.checked = !cb.checked;
+                        updateMaster();
+                    }
+                }
+            });
+
+            // Inicializa estado del maestro al cargar
+            updateMaster();
+        });
+    </script>
+    {{ parent() }}
+{% endblock %}

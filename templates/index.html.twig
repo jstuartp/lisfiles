@@ -3,8 +3,42 @@
 {% block title %}Eventos sísmicos{% endblock %}
 
 {% block body %}
+    <script>
+        function enviaDatos (id, fecha, mag) {
+            var theForm, newInput1, newInput2, newInput3;
+            // Start by creating a <form>
+            theForm = document.createElement('form');
+            theForm.action = '{{ path('app_file_manager_list') }}';
+            theForm.method = 'post';
+            // Next create the <input>s in the form and give them names and values
+            newInput1 = document.createElement('input');
+            newInput1.type = 'hidden';
+            newInput1.name = 'id';
+            newInput1.value = id;
+            newInput2 = document.createElement('input');
+            newInput2.type = 'hidden';
+            newInput2.name = 'fecha';
+            newInput2.value = fecha;
+            newInput3 = document.createElement('input');
+            newInput3.type = 'hidden';
+            newInput3.name = 'mag';
+            newInput3.value = mag;
+
+
+            // Now put everything together...
+            theForm.appendChild(newInput1);
+            theForm.appendChild(newInput2);
+            theForm.appendChild(newInput3);
+
+            // ...and it to the DOM...
+            document.getElementById('hidden_form_container').appendChild(theForm);
+            // ...and submit it
+            theForm.submit();
+        }
+
+    </script>
     <div class="container mt-5">
-        <h1 class="mb-3">Eventos sísmicos</h1>
+        <h1 class="mb-3">Eventos sísmicos con Archivos Generados</h1>
 
         {# Flashes del sistema #}
         {% for label, messages in app.flashes %}
@@ -13,29 +47,8 @@
             {% endfor %}
         {% endfor %}
 
-        {# Controles de ordenación por servidor (opcional) #}
-        <form class="row g-2 mb-3" method="get" action="{{ path('app_event_list') }}">
-            <div class="col-auto">
-                <label for="sort" class="form-label">Ordenar por</label>
-                <select id="sort" name="sort" class="form-select">
-                    <option value="">— Orden —</option>
-                    <option value="fecha" {{ app.request.get('sort') == 'fecha' ? 'selected' }}>Fecha</option>
-                    <option value="aceleracion" {{ app.request.get('sort') == 'aceleracion' ? 'selected' }}>Aceleración Máx.</option>
-                </select>
-            </div>
-            <div class="col-auto">
-                <label for="dir" class="form-label">Dirección</label>
-                <select id="dir" name="dir" class="form-select">
-                    <option value="desc" {{ app.request.get('dir') == 'desc' ? 'selected' }}>Descendente</option>
-                    <option value="asc"  {{ app.request.get('dir') == 'asc'  ? 'selected' }}>Ascendente</option>
-                </select>
-            </div>
-            <div class="col-auto align-self-end">
-                <button type="submit" class="btn btn-outline-primary">Ordenar</button>
-            </div>
-        </form>
 
-        <form id="formDescargar" action="{{ path('app_file_manager_download') }}" method="post">
+
             <input type="hidden" name="_token" value="{{ csrf_token('descargar_evento') }}">
             <input type="hidden" id="idEventoSeleccionado" name="idEvento">
 
@@ -68,7 +81,8 @@
                         <td data-sort-value="{{ e.aceleracionEvento is not null ? e.aceleracionEvento : '' }}">
                             {{ e.aceleracionEvento is not null ? e.aceleracionEvento|number_format(2, '.', ',') : '—'  }} -- ( {{ e.nombre }} )
                         </td>
-                        <td> <button type="submit" class="btn btn-primary" id="btnDescargar" disabled>
+                        <td> <button  class="btn btn-primary" id="btnDescargar"
+                                     onclick="enviaDatos('{{ e.idEvento }}','{{ e.fechaEvento }}','{{ e.magnitudEvento }}')">
                                 Archivos .Lis
                             </button>
                         </td>
@@ -79,14 +93,10 @@
                 </tbody>
             </table>
 
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary" id="btnDescargar" disabled>
-                    Abrir página de descarga
-                </button>
-                <small class="text-muted align-self-center">Se enviará un POST con <code>idEvento</code> a <em>descargar.html.twig</em>.</small>
-            </div>
-        </form>
+
     </div>
+
+    <div id="hidden_form_container" style="display:none;"></div>
 {% endblock %}
 
 {% block scriptspie %}
