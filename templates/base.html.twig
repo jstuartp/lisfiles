@@ -440,14 +440,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </script>
         {% endblock %}
 {% block scriptspie %}
+    <!-- Bootstrap 5.3 (JS) -->
+    <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('assets/js/contact2web.js') }}"></script>
     <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.7.1.min.js?a=1"></script>
     <script type="text/javascript" charset="utf8" src="{{ asset('assets/DataTables-2.3.4/js/dataTables.js') }}" > </script>
     <script type="text/javascript" charset="utf8" src="{{ asset('assets/DataTables-2.3.4/js/dataTables.jqueryui.min.js') }}" > </script>
     <script type="text/javascript" charset="utf8" src="{{ asset('assets/DataTables-2.3.4/js/dataTables.bootstrap5.js') }}" > </script>
     <script type="text/javascript" charset="utf8" src="{{ asset('assets/Buttons-3.2.5/js/buttons.dataTables.js') }}" > </script>
-    <!-- Bootstrap 5.3 (JS) -->
-    <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
+    <!-- DataTables núcleo -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.3.4/css/dataTables.dataTables.min.css">
+    <script src="https://cdn.datatables.net/2.3.4/js/dataTables.min.js"></script>
+
+    <!-- Extensión Buttons -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.1.1/css/buttons.dataTables.min.css">
+    <script src="https://cdn.datatables.net/buttons/3.1.1/js/dataTables.buttons.min.js"></script>
+
+    <!-- Librerías necesarias para exportaciones -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+    <!-- Botones específicos -->
+    <script src="https://cdn.datatables.net/buttons/3.1.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.1.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.1.1/js/buttons.colVis.min.js"></script>
+
 
 
 

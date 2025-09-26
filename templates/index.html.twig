@@ -100,74 +100,64 @@
 {% endblock %}
 
 {% block scriptspie %}
+    {{ parent() }}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-
-            let mytabla =$('#eventosTable').DataTable({
-                paging: true,       // Habilita paginación
-                columnDefs: [
-                    { targets: [0], className: 'dt-head-center dt-body-center' }
-                ],
-                retrieve: true,
+            const tabla = new DataTable('#eventosTable', {
+                // Comportamiento general
+                paging: true,
                 ordering: true,
-                order: [[0, "desc"],],
-                lengthMenu: [15, 30, 60], // Opciones de cantidad de filas por página
-                pageLength: 15,      // Número de filas por defecto
-                language: {
-                    processing: "En curso...",
-                    search: "Buscar:",
-                    paginate: {
-                        first: "Primero",
-                        previous: "Anterior",
-                        next: "Siguiente",
-                        last: "Último"
-                    },
+                order: [[0, 'desc']],
+                lengthMenu: [15, 30, 60],
+                pageLength: 15,
+                retrieve: true, // si ya existe una instancia, la reutiliza
+
+                // Centrados (todas las columnas)
+                columnDefs: [
+                    { targets: '_all', className: 'dt-head-center dt-body-center' }
+                ],
+
+                // Disposición moderna del layout (v2)
+                layout: {
+                    topStart: [
+                        'pageLength'
+
+                    ],
+                    topEnd: 'search',
+                    bottomStart: 'info',
+                    bottomEnd: 'paging'
                 },
-            });
 
-
-            const tabla = document.getElementById('eventosTable');
-            const tbody = tabla.querySelector('tbody');
-            const btnDescargar = document.getElementById('btnDescargar');
-            const inputId = document.getElementById('idEventoSeleccionado');
-
-            // Selección de fila por clic (marca el radio y habilita botón):
-            tbody.addEventListener('click', function (ev) {
-                const fila = ev.target.closest('tr.fila-seleccionable');
-                if (!fila) return;
-                const radio = fila.querySelector('.seleccionar-radio');
-                if (radio) {
-                    radio.checked = true;
-                    inputId.value = fila.dataset.id;
-                    btnDescargar.disabled = false;
+                // Localización en español
+                language: {
+                    processing:   'Procesando...',
+                    search:       'Buscar:',
+                    lengthMenu:   'Mostrar _MENU_ registros',
+                    info:         'Mostrando _START_ a _END_ de _TOTAL_ registros',
+                    infoEmpty:    'Mostrando 0 a 0 de 0 registros',
+                    infoFiltered: '(filtrado de _MAX_ registros en total)',
+                    loadingRecords: 'Cargando...',
+                    zeroRecords:  'No se encontraron resultados',
+                    emptyTable:   'No hay datos disponibles en la tabla',
+                    paginate: {
+                        first:    'Primero',
+                        previous: 'Anterior',
+                        next:     'Siguiente',
+                        last:     'Último'
+                    },
+                    aria: {
+                        sortAscending:  ': activar para ordenar la columna ascendente',
+                        sortDescending: ': activar para ordenar la columna descendente'
+                    },
+                    buttons: {
+                        pageLength: {
+                            _: 'Mostrar %d filas',
+                            '-1': 'Mostrar todas'
+                        }
+                    }
                 }
-            });
-
-            // Ordenamiento cliente por columnas con data-sort:
-            const getCellValue = (tr, idx) => {
-                const td = tr.children[idx];
-                return td ? (td.dataset.sortValue || td.textContent.trim()) : '';
-            };
-            const comparer = (idx, asc) => (a, b) => {
-                const v1 = getCellValue(asc ? a : b, idx);
-                const v2 = getCellValue(asc ? b : a, idx);
-                const n1 = parseFloat(v1), n2 = parseFloat(v2);
-                if (!isNaN(n1) && !isNaN(n2)) return n1 - n2;
-                return v1.localeCompare(v2);
-            };
-
-            tabla.querySelectorAll('th[data-sort]').forEach(th => {
-                let asc = false;
-                th.style.cursor = 'pointer';
-                th.addEventListener('click', () => {
-                    const idx = Array.from(th.parentNode.children).indexOf(th);
-                    asc = !asc;
-                    Array.from(tbody.querySelectorAll('tr'))
-                        .sort(comparer(idx, asc))
-                        .forEach(tr => tbody.appendChild(tr));
-                });
             });
         });
     </script>
-    {{ parent() }}
+
 {% endblock %}
